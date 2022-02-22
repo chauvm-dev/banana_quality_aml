@@ -15,7 +15,7 @@ from flask_pymongo import PyMongo
 from pymongo.errors import DuplicateKeyError, OperationFailure
 from bson.objectid import ObjectId
 from bson.errors import InvalidId
-
+import json
 
 def get_db():
     """
@@ -285,3 +285,39 @@ def delete_comment(comment_id, user_email):
 
     response = db.comments.delete_one( { "_id": ObjectId(comment_id) } )
     return response
+
+
+def create_user(email, password, full_name):
+    user_doc = {'email':email, 'password':password, 'full_name':full_name}
+    db.users.insert_one(user_doc)
+    return user_doc
+
+
+def find_user(email, password):
+    """
+    Given a movie ID, return a movie with that ID, with the comments for that
+    movie embedded in the movie document. The comments are joined from the
+    comments collection using expressive $lookup.
+    """
+    try:
+
+        pipeline = [
+            {
+                "$match": {
+                    "email": email,
+                    'password': password
+                }
+            }
+        ]
+
+        user = db.users.aggregate(pipeline).next()
+        return user
+
+    # TODO: Error Handling
+    # If an invalid ID is passed to `get_movie`, it should return None.
+    except (StopIteration) as _:
+
+        return None
+
+    except Exception as e:
+        return {}
